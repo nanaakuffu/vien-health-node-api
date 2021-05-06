@@ -2,7 +2,9 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const config = require('../config/sys_config');
 const db = require("../db/db");
+
 const User = db.user;
+const Token = db.token;
 
 registerUser = (request, response) => {
     const user = new User({
@@ -48,17 +50,47 @@ userLogin = async (request, response) => {
         expiresIn: 86400 // 24 hours
     });
 
-    response.status(200).send({
-        id: user._id,
-        first_name: user.first_name,
-        last_name: user.last_name,
+    const token_data = await new Token({
+        user_id: user._id,
         email: user.email,
-        contact_number: user.contact_number,
-        api_token: token
+        user_agent: request.headers['user-agent']
+    })
+
+    token_data.save((err, data) => {
+        if (err) {
+            response.status(500).send({ message: err });
+            return;
+        }
+
+        response.status(200).send({
+            id: user._id,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            email: user.email,
+            contact_number: user.contact_number,
+            api_token: token
+        });
     });
+};
+
+userLogout = async (request, response) => {
+
+    const user = request.currentUser;
+
+    const token = await Token.deleteOne({ user_id: user._id });
+
+    if (token) {
+        response.status(200).send({
+            message: "User logged out successfully.",
+            active: 0,
+        });
+    }
+
+
 };
 
 module.exports = {
     registerUser,
-    userLogin
+    userLogin,
+    userLogout
 }
