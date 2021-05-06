@@ -16,7 +16,7 @@ chai.use(chaiHttp);
 
 //Our parent block
 describe('Users', () => {
-    beforeEach((done) => { //Before each test we empty the database
+    before((done) => {
         User.deleteMany({}, (err) => {
             done();
         });
@@ -77,6 +77,25 @@ describe('Users', () => {
                     res.should.have.status(201);
                     res.body.should.be.a('object');
                     res.body.should.have.property('message').eql('User was registered successfully!');
+                    done();
+                });
+        });
+        it('it shoule not save user with the same email', (done) => {
+            let user = {
+                first_name: 'John',
+                last_name: 'Smith',
+                contact_number: "1112223331",
+                email: "johnsmith@example.com",
+                password: 'password',
+                confirm_password: 'password'
+            }
+            chai.request(server)
+                .post('/api/v1/users/register')
+                .send(user)
+                .end((err, res) => {
+                    res.should.have.status(400);
+                    res.body.should.be.a('object');
+                    res.body.should.have.property('message').eql('Failed! Email is already in use!');
                     done();
                 });
         });
